@@ -93,11 +93,34 @@ const InfiniteScroll = {
   }
 };
 
+const FilterModal = {
+  mounted() {
+    this.positionModal();
+  },
+  
+  updated() {
+    this.positionModal();
+  },
+  
+  positionModal() {
+    const column = this.el.dataset.column;
+    const filterButton = document.getElementById(`filter-button-${column}`);
+    if (!filterButton) return;
+    
+    const buttonRect = filterButton.getBoundingClientRect();
+    const modal = this.el;
+    
+    // Position modal aligned to bottom-right of the filter button
+    modal.style.top = (buttonRect.bottom + 4) + 'px';
+    modal.style.left = (buttonRect.right - modal.offsetWidth) + 'px';
+  }
+};
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, ResizableTable, InfiniteScroll},
+  hooks: {...colocatedHooks, ResizableTable, InfiniteScroll, FilterModal},
 })
 
 // Show progress bar on live navigation and form submits

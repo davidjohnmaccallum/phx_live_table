@@ -38,8 +38,12 @@ defmodule TableComponent.Order do
     offset = Keyword.get(opts, :offset, 0)
     sort_by = Keyword.get(opts, :sort_by)
     sort_order = Keyword.get(opts, :sort_order, :asc)
+    filters = Keyword.get(opts, :filters, %{})
 
     query = from(o in __MODULE__, preload: :customer)
+
+    # Apply filters dynamically
+    query = apply_filters(query, filters)
 
     query =
       case sort_by do
@@ -70,7 +74,75 @@ defmodule TableComponent.Order do
     |> Repo.all()
   end
 
-  def count do
-    Repo.aggregate(__MODULE__, :count)
+  defp apply_filters(query, filters) do
+    require Logger
+    Logger.debug("Applying filters: #{inspect(filters)}")
+
+    Enum.reduce(filters, query, fn {column, values}, acc_query ->
+      if values != [] do
+        Logger.debug("Filtering #{column} with values: #{inspect(values)}")
+
+        case column do
+          :status ->
+            from(o in acc_query, where: o.status in ^values)
+
+          :customer ->
+            from(o in acc_query,
+              join: c in assoc(o, :customer),
+              where: c.name in ^values
+            )
+
+          _ ->
+            acc_query
+        end
+      else
+        acc_query
+      end
+    end)
+  end
+
+  def count(opts \\ []) do
+    filters = Keyword.get(opts, :filters, %{})
+
+    query = from(o in __MODULE__)
+
+    query = apply_count_filters(query, filters)
+
+    Repo.aggregate(query, :count)
+  end
+
+  defp apply_count_filters(query, filters) do
+    Enum.reduce(filters, query, fn {column, values}, acc_query ->
+      if values != [] do
+        case column do
+          :status ->
+            from(o in acc_query, where: o.status in ^values)
+
+          :customer ->
+            from(o in acc_query,
+              join: c in assoc(o, :customer),
+              where: c.name in ^values
+            )
+
+          _ ->
+            acc_query
+        end
+      else
+        acc_query
+      end
+    end)
+  end
+
+  def available_statuses do
+    ["pending", "processing", "shipped", "delivered", "cancelled"]
+  end
+
+  def available_customers do
+    alias TableComponent.Customer
+
+    Customer
+    |> order_by([c], c.name)
+    |> Repo.all()
+    |> Enum.map(& &1.name)
   end
 end
