@@ -25,11 +25,50 @@ import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/table_component"
 import topbar from "../vendor/topbar"
 
+const ResizableTable = {
+  mounted() {
+    this.resizing = null;
+    this.startX = 0;
+    this.startWidth = 0;
+    
+    const table = this.el.querySelector('table');
+    const resizeHandles = this.el.querySelectorAll('.resize-handle');
+    
+    resizeHandles.forEach((handle, index) => {
+      handle.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        this.resizing = handle.parentElement;
+        this.startX = e.pageX;
+        this.startWidth = this.resizing.offsetWidth;
+        
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+      });
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+      if (this.resizing) {
+        const diff = e.pageX - this.startX;
+        const newWidth = Math.max(50, this.startWidth + diff);
+        this.resizing.style.width = newWidth + 'px';
+      }
+    });
+    
+    document.addEventListener('mouseup', () => {
+      if (this.resizing) {
+        this.resizing = null;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    });
+  }
+};
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks},
+  hooks: {...colocatedHooks, ResizableTable},
 })
 
 // Show progress bar on live navigation and form submits
