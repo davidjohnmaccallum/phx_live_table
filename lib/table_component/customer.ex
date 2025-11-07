@@ -104,31 +104,11 @@ defmodule TableComponent.Customer do
   def available_statuses do
     ["active", "inactive", "pending"]
   end
-end
 
-defmodule TableComponent.Customer.DataSource do
-  @moduledoc """
-  DataSource wrapper for Customer queries
+  @doc """
+  Get available filter options for a specific column.
+  Used by the DataSource protocol.
   """
-  defstruct []
-
-  defimpl TableComponent.DataSource do
-    alias TableComponent.Customer
-
-    def list_paginated(_source, opts) do
-      Customer.list_paginated(opts)
-    end
-
-    def count(_source, opts) do
-      Customer.count(opts)
-    end
-
-    def filter_options(_source, :status) do
-      Customer.available_statuses()
-    end
-
-    def filter_options(_source, _column) do
-      []
-    end
-  end
+  def filter_options(:status), do: available_statuses()
+  def filter_options(_column), do: []
 end

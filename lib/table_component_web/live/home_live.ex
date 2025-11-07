@@ -2,12 +2,10 @@ defmodule TableComponentWeb.HomeLive do
   use TableComponentWeb, :live_view
   alias TableComponent.{Order, DataSource}
 
-  @data_source %Order.DataSource{}
-
   def mount(_params, _session, socket) do
     if connected?(socket) do
-      total_count = DataSource.count(@data_source, [])
-      orders = DataSource.list_paginated(@data_source, limit: 100, offset: 0)
+      total_count = DataSource.count(Order, [])
+      orders = DataSource.list_paginated(Order, limit: 100, offset: 0)
 
       {:ok,
        socket
@@ -21,8 +19,8 @@ defmodule TableComponentWeb.HomeLive do
        |> assign(:filters, %{})
        |> assign(:filter_modal, nil)
        |> assign(:filter_options, %{
-         status: DataSource.filter_options(@data_source, :status),
-         customer: DataSource.filter_options(@data_source, :customer)
+         status: DataSource.filter_options(Order, :status),
+         customer: DataSource.filter_options(Order, :customer)
        })
        |> stream(:orders, orders)}
     else
@@ -38,8 +36,8 @@ defmodule TableComponentWeb.HomeLive do
        |> assign(:filters, %{})
        |> assign(:filter_modal, nil)
        |> assign(:filter_options, %{
-         status: DataSource.filter_options(@data_source, :status),
-         customer: DataSource.filter_options(@data_source, :customer)
+         status: DataSource.filter_options(Order, :status),
+         customer: DataSource.filter_options(Order, :customer)
        })
        |> stream(:orders, [])}
     end
@@ -51,7 +49,7 @@ defmodule TableComponentWeb.HomeLive do
     offset = (page - 1) * per_page
 
     orders =
-      DataSource.list_paginated(@data_source,
+      DataSource.list_paginated(Order,
         limit: per_page,
         offset: offset,
         sort_by: socket.assigns.sort_by,
@@ -91,7 +89,7 @@ defmodule TableComponentWeb.HomeLive do
 
     # Reload data from beginning with new sort
     orders =
-      DataSource.list_paginated(@data_source,
+      DataSource.list_paginated(Order,
         limit: 100,
         offset: 0,
         sort_by: new_sort_by,
@@ -99,7 +97,7 @@ defmodule TableComponentWeb.HomeLive do
         filters: socket.assigns.filters
       )
 
-    total_count = DataSource.count(@data_source, filters: socket.assigns.filters)
+    total_count = DataSource.count(Order, filters: socket.assigns.filters)
 
     {:noreply,
      socket
@@ -145,7 +143,7 @@ defmodule TableComponentWeb.HomeLive do
 
     # Reload data with new filters
     orders =
-      DataSource.list_paginated(@data_source,
+      DataSource.list_paginated(Order,
         limit: 100,
         offset: 0,
         sort_by: socket.assigns.sort_by,
@@ -153,7 +151,7 @@ defmodule TableComponentWeb.HomeLive do
         filters: socket.assigns.filters
       )
 
-    total_count = DataSource.count(@data_source, filters: socket.assigns.filters)
+    total_count = DataSource.count(Order, filters: socket.assigns.filters)
 
     {:noreply,
      socket
@@ -170,7 +168,7 @@ defmodule TableComponentWeb.HomeLive do
     new_filters = Map.put(socket.assigns.filters, column_atom, [])
 
     orders =
-      DataSource.list_paginated(@data_source,
+      DataSource.list_paginated(Order,
         limit: 100,
         offset: 0,
         sort_by: socket.assigns.sort_by,
@@ -178,7 +176,7 @@ defmodule TableComponentWeb.HomeLive do
         filters: new_filters
       )
 
-    total_count = DataSource.count(@data_source, filters: new_filters)
+    total_count = DataSource.count(Order, filters: new_filters)
 
     {:noreply,
      socket

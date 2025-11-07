@@ -1,7 +1,18 @@
 defprotocol TableComponent.DataSource do
   @moduledoc """
   Protocol for data sources that can be used with the reusable table component.
-  Schemas must implement this protocol to provide data for the table.
+
+  Instead of implementing this protocol for each schema, schemas should implement
+  the required functions (`list_paginated/1`, `count/1`, `filter_options/1`) directly,
+  and this protocol will dispatch to them automatically when you pass the module atom.
+
+  ## Usage
+
+      # In your LiveView
+      @data_source TableComponent.Order
+
+      # The protocol automatically dispatches to Order.list_paginated/1
+      DataSource.list_paginated(@data_source, opts)
   """
 
   @doc """
@@ -32,4 +43,30 @@ defprotocol TableComponent.DataSource do
   """
   @spec filter_options(t(), atom()) :: [term()]
   def filter_options(data, column)
+end
+
+defimpl TableComponent.DataSource, for: Atom do
+  @moduledoc """
+  Generic protocol implementation for module atoms.
+
+  This allows any module that implements the required functions to work
+  as a data source without needing to define wrapper structs or
+  per-module protocol implementations.
+  """
+
+  def list_paginated(module, opts) when is_atom(module) do
+    module.list_paginated(opts)
+  end
+
+  def count(module, opts) when is_atom(module) do
+    module.count(opts)
+  end
+
+  def filter_options(module, column) when is_atom(module) do
+    if function_exported?(module, :filter_options, 1) do
+      module.filter_options(column)
+    else
+      []
+    end
+  end
 end

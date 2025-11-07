@@ -145,35 +145,12 @@ defmodule TableComponent.Order do
     |> Repo.all()
     |> Enum.map(& &1.name)
   end
-end
 
-defmodule TableComponent.Order.DataSource do
-  @moduledoc """
-  DataSource wrapper for Order queries
+  @doc """
+  Get available filter options for a specific column.
+  Used by the DataSource protocol.
   """
-  defstruct []
-
-  defimpl TableComponent.DataSource do
-    alias TableComponent.Order
-
-    def list_paginated(_source, opts) do
-      Order.list_paginated(opts)
-    end
-
-    def count(_source, opts) do
-      Order.count(opts)
-    end
-
-    def filter_options(_source, :status) do
-      Order.available_statuses()
-    end
-
-    def filter_options(_source, :customer) do
-      Order.available_customers()
-    end
-
-    def filter_options(_source, _column) do
-      []
-    end
-  end
+  def filter_options(:status), do: available_statuses()
+  def filter_options(:customer), do: available_customers()
+  def filter_options(_column), do: []
 end

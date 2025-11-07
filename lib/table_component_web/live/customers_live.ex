@@ -2,12 +2,10 @@ defmodule TableComponentWeb.CustomersLive do
   use TableComponentWeb, :live_view
   alias TableComponent.{Customer, DataSource}
 
-  @data_source %Customer.DataSource{}
-
   def mount(_params, _session, socket) do
     if connected?(socket) do
-      total_count = DataSource.count(@data_source, [])
-      customers = DataSource.list_paginated(@data_source, limit: 100, offset: 0)
+      total_count = DataSource.count(Customer, [])
+      customers = DataSource.list_paginated(Customer, limit: 100, offset: 0)
 
       {:ok,
        socket
@@ -21,7 +19,7 @@ defmodule TableComponentWeb.CustomersLive do
        |> assign(:filters, %{})
        |> assign(:filter_modal, nil)
        |> assign(:filter_options, %{
-         status: DataSource.filter_options(@data_source, :status)
+         status: DataSource.filter_options(Customer, :status)
        })
        |> stream(:customers, customers)}
     else
@@ -37,7 +35,7 @@ defmodule TableComponentWeb.CustomersLive do
        |> assign(:filters, %{})
        |> assign(:filter_modal, nil)
        |> assign(:filter_options, %{
-         status: DataSource.filter_options(@data_source, :status)
+         status: DataSource.filter_options(Customer, :status)
        })
        |> stream(:customers, [])}
     end
@@ -49,7 +47,7 @@ defmodule TableComponentWeb.CustomersLive do
     offset = (page - 1) * per_page
 
     customers =
-      DataSource.list_paginated(@data_source,
+      DataSource.list_paginated(Customer,
         limit: per_page,
         offset: offset,
         sort_by: socket.assigns.sort_by,
@@ -86,7 +84,7 @@ defmodule TableComponentWeb.CustomersLive do
       end
 
     customers =
-      DataSource.list_paginated(@data_source,
+      DataSource.list_paginated(Customer,
         limit: 100,
         offset: 0,
         sort_by: new_sort_by,
@@ -94,7 +92,7 @@ defmodule TableComponentWeb.CustomersLive do
         filters: socket.assigns.filters
       )
 
-    total_count = DataSource.count(@data_source, filters: socket.assigns.filters)
+    total_count = DataSource.count(Customer, filters: socket.assigns.filters)
 
     {:noreply,
      socket
@@ -134,7 +132,7 @@ defmodule TableComponentWeb.CustomersLive do
 
   def handle_event("apply-filters", _params, socket) do
     customers =
-      DataSource.list_paginated(@data_source,
+      DataSource.list_paginated(Customer,
         limit: 100,
         offset: 0,
         sort_by: socket.assigns.sort_by,
@@ -142,7 +140,7 @@ defmodule TableComponentWeb.CustomersLive do
         filters: socket.assigns.filters
       )
 
-    total_count = DataSource.count(@data_source, filters: socket.assigns.filters)
+    total_count = DataSource.count(Customer, filters: socket.assigns.filters)
 
     {:noreply,
      socket
@@ -159,7 +157,7 @@ defmodule TableComponentWeb.CustomersLive do
     new_filters = Map.put(socket.assigns.filters, column_atom, [])
 
     customers =
-      DataSource.list_paginated(@data_source,
+      DataSource.list_paginated(Customer,
         limit: 100,
         offset: 0,
         sort_by: socket.assigns.sort_by,
@@ -167,7 +165,7 @@ defmodule TableComponentWeb.CustomersLive do
         filters: new_filters
       )
 
-    total_count = DataSource.count(@data_source, filters: new_filters)
+    total_count = DataSource.count(Customer, filters: new_filters)
 
     {:noreply,
      socket
