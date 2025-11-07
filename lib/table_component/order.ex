@@ -147,26 +147,33 @@ defmodule TableComponent.Order do
   end
 end
 
-defimpl TableComponent.DataSource, for: Atom do
-  alias TableComponent.Order
+defmodule TableComponent.Order.DataSource do
+  @moduledoc """
+  DataSource wrapper for Order queries
+  """
+  defstruct []
 
-  def list_paginated(Order, opts) do
-    Order.list_paginated(opts)
-  end
+  defimpl TableComponent.DataSource do
+    alias TableComponent.Order
 
-  def count(Order, opts) do
-    Order.count(opts)
-  end
+    def list_paginated(_source, opts) do
+      Order.list_paginated(opts)
+    end
 
-  def filter_options(Order, :status) do
-    Order.available_statuses()
-  end
+    def count(_source, opts) do
+      Order.count(opts)
+    end
 
-  def filter_options(Order, :customer) do
-    Order.available_customers()
-  end
+    def filter_options(_source, :status) do
+      Order.available_statuses()
+    end
 
-  def filter_options(Order, _column) do
-    []
+    def filter_options(_source, :customer) do
+      Order.available_customers()
+    end
+
+    def filter_options(_source, _column) do
+      []
+    end
   end
 end

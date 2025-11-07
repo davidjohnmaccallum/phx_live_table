@@ -1,30 +1,29 @@
-defmodule TableComponentWeb.HomeLive do
+defmodule TableComponentWeb.CustomersLive do
   use TableComponentWeb, :live_view
-  alias TableComponent.{Order, DataSource}
+  alias TableComponent.{Customer, DataSource}
 
-  @data_source %Order.DataSource{}
+  @data_source %Customer.DataSource{}
 
   def mount(_params, _session, socket) do
     if connected?(socket) do
       total_count = DataSource.count(@data_source, [])
-      orders = DataSource.list_paginated(@data_source, limit: 100, offset: 0)
+      customers = DataSource.list_paginated(@data_source, limit: 100, offset: 0)
 
       {:ok,
        socket
        |> assign(:page, 1)
        |> assign(:per_page, 100)
-       |> assign(:has_more, length(orders) == 100)
+       |> assign(:has_more, length(customers) == 100)
        |> assign(:total_count, total_count)
-       |> assign(:loaded_count, length(orders))
+       |> assign(:loaded_count, length(customers))
        |> assign(:sort_by, nil)
        |> assign(:sort_order, :asc)
        |> assign(:filters, %{})
        |> assign(:filter_modal, nil)
        |> assign(:filter_options, %{
-         status: DataSource.filter_options(@data_source, :status),
-         customer: DataSource.filter_options(@data_source, :customer)
+         status: DataSource.filter_options(@data_source, :status)
        })
-       |> stream(:orders, orders)}
+       |> stream(:customers, customers)}
     else
       {:ok,
        socket
@@ -38,10 +37,9 @@ defmodule TableComponentWeb.HomeLive do
        |> assign(:filters, %{})
        |> assign(:filter_modal, nil)
        |> assign(:filter_options, %{
-         status: DataSource.filter_options(@data_source, :status),
-         customer: DataSource.filter_options(@data_source, :customer)
+         status: DataSource.filter_options(@data_source, :status)
        })
-       |> stream(:orders, [])}
+       |> stream(:customers, [])}
     end
   end
 
@@ -50,7 +48,7 @@ defmodule TableComponentWeb.HomeLive do
     per_page = socket.assigns.per_page
     offset = (page - 1) * per_page
 
-    orders =
+    customers =
       DataSource.list_paginated(@data_source,
         limit: per_page,
         offset: offset,
@@ -59,15 +57,15 @@ defmodule TableComponentWeb.HomeLive do
         filters: socket.assigns.filters
       )
 
-    has_more = length(orders) == per_page
-    loaded_count = socket.assigns.loaded_count + length(orders)
+    has_more = length(customers) == per_page
+    loaded_count = socket.assigns.loaded_count + length(customers)
 
     {:noreply,
      socket
      |> assign(:page, page)
      |> assign(:has_more, has_more)
      |> assign(:loaded_count, loaded_count)
-     |> stream(:orders, orders)}
+     |> stream(:customers, customers)}
   end
 
   def handle_event("sort", %{"column" => column}, socket) do
@@ -77,20 +75,17 @@ defmodule TableComponentWeb.HomeLive do
 
     {new_sort_by, new_sort_order} =
       cond do
-        # Clicking the same column - cycle through asc -> desc -> nil
         current_sort_by == column_atom && current_sort_order == :asc ->
           {column_atom, :desc}
 
         current_sort_by == column_atom && current_sort_order == :desc ->
           {nil, :asc}
 
-        # Clicking a different column - start with asc
         true ->
           {column_atom, :asc}
       end
 
-    # Reload data from beginning with new sort
-    orders =
+    customers =
       DataSource.list_paginated(@data_source,
         limit: 100,
         offset: 0,
@@ -107,9 +102,9 @@ defmodule TableComponentWeb.HomeLive do
      |> assign(:sort_by, new_sort_by)
      |> assign(:sort_order, new_sort_order)
      |> assign(:total_count, total_count)
-     |> assign(:has_more, length(orders) == 100)
-     |> assign(:loaded_count, length(orders))
-     |> stream(:orders, orders, reset: true)}
+     |> assign(:has_more, length(customers) == 100)
+     |> assign(:loaded_count, length(customers))
+     |> stream(:customers, customers, reset: true)}
   end
 
   def handle_event("open-filter-modal", %{"column" => column}, socket) do
@@ -121,7 +116,6 @@ defmodule TableComponentWeb.HomeLive do
   end
 
   def handle_event("toggle-filter", %{"column" => column, "filter-value" => value}, socket) do
-    require Logger
     column_atom = String.to_existing_atom(column)
     current_filters = socket.assigns.filters
     column_filters = Map.get(current_filters, column_atom, [])
@@ -134,17 +128,12 @@ defmodule TableComponentWeb.HomeLive do
       end
 
     new_filters = Map.put(current_filters, column_atom, new_column_filters)
-    Logger.debug("New filters after toggle: #{inspect(new_filters)}")
 
     {:noreply, assign(socket, :filters, new_filters)}
   end
 
   def handle_event("apply-filters", _params, socket) do
-    require Logger
-    Logger.debug("Applying filters: #{inspect(socket.assigns.filters)}")
-
-    # Reload data with new filters
-    orders =
+    customers =
       DataSource.list_paginated(@data_source,
         limit: 100,
         offset: 0,
@@ -159,17 +148,17 @@ defmodule TableComponentWeb.HomeLive do
      socket
      |> assign(:page, 1)
      |> assign(:total_count, total_count)
-     |> assign(:has_more, length(orders) == 100)
-     |> assign(:loaded_count, length(orders))
+     |> assign(:has_more, length(customers) == 100)
+     |> assign(:loaded_count, length(customers))
      |> assign(:filter_modal, nil)
-     |> stream(:orders, orders, reset: true)}
+     |> stream(:customers, customers, reset: true)}
   end
 
   def handle_event("clear-filters", %{"column" => column}, socket) do
     column_atom = String.to_existing_atom(column)
     new_filters = Map.put(socket.assigns.filters, column_atom, [])
 
-    orders =
+    customers =
       DataSource.list_paginated(@data_source,
         limit: 100,
         offset: 0,
@@ -185,25 +174,32 @@ defmodule TableComponentWeb.HomeLive do
      |> assign(:page, 1)
      |> assign(:filters, new_filters)
      |> assign(:total_count, total_count)
-     |> assign(:has_more, length(orders) == 100)
-     |> assign(:loaded_count, length(orders))
+     |> assign(:has_more, length(customers) == 100)
+     |> assign(:loaded_count, length(customers))
      |> assign(:filter_modal, nil)
-     |> stream(:orders, orders, reset: true)}
+     |> stream(:customers, customers, reset: true)}
   end
 
   def columns do
     [
       %{
-        field: :order_number,
-        label: "Order Number",
+        field: :name,
+        label: "Name",
         sortable: true
       },
       %{
-        field: :customer,
-        label: "Customer",
-        sortable: true,
-        filterable: true,
-        accessor: fn order -> order.customer.name end
+        field: :email,
+        label: "Email",
+        sortable: true
+      },
+      %{
+        field: :phone,
+        label: "Phone"
+      },
+      %{
+        field: :company,
+        label: "Company",
+        sortable: true
       },
       %{
         field: :status,
@@ -211,19 +207,6 @@ defmodule TableComponentWeb.HomeLive do
         sortable: true,
         filterable: true,
         format: &String.capitalize/1
-      },
-      %{
-        field: :order_date,
-        label: "Order Date",
-        sortable: true,
-        format: fn date -> Calendar.strftime(date, "%Y-%m-%d") end
-      },
-      %{
-        field: :total_amount,
-        label: "Total Amount",
-        sortable: true,
-        align: :right,
-        format: fn amount -> Decimal.to_string(amount) end
       }
     ]
   end

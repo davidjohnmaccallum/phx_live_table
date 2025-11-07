@@ -18,6 +18,7 @@ defmodule TableComponentWeb.Router do
     pipe_through :browser
 
     live "/", HomeLive
+    live "/customers", CustomersLive
     live "/daisy-demo", DaisyDemoLive
   end
 
