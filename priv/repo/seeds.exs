@@ -10,7 +10,6 @@
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.
 
-import Ecto.Query
 alias TableComponent.Repo
 alias TableComponent.{Customer, Order, OrderItem}
 
@@ -21,8 +20,8 @@ Repo.delete_all(Customer)
 
 IO.puts("Creating customers...")
 
-# Create 50 customers for testing pagination
-customers = Enum.map(1..50, fn i ->
+# Create 200 customers for testing pagination with 1000 orders
+customers = Enum.map(1..200, fn i ->
   statuses = ["active", "active", "active", "inactive", "pending"]
   companies = [
     "Tech Solutions Inc.", "Design Studio LLC", "Global Trading Co.",
@@ -56,14 +55,14 @@ IO.puts("Created #{length(inserted_customers)} customers")
 
 IO.puts("Creating orders...")
 
-# Create 100 orders spread across customers
+# Create 1000 orders spread across customers
 statuses = ["pending", "processing", "shipped", "delivered", "cancelled"]
-orders_data = Enum.map(1..100, fn i ->
+orders_data = Enum.map(1..1000, fn i ->
   # Distribute orders across customers
   customer_index = rem(i - 1, length(inserted_customers))
 
-  # Generate dates from the past 6 months
-  days_ago = 180 - (i * 2)
+  # Generate dates from the past 12 months
+  days_ago = 365 - rem(i, 365)
   order_date = Date.add(Date.utc_today(), -days_ago)
 
   # Random amounts between $50 and $5000
@@ -71,7 +70,7 @@ orders_data = Enum.map(1..100, fn i ->
 
   {
     customer_index,
-    "ORD-2024-#{String.pad_leading(to_string(i), 4, "0")}",
+    "ORD-2024-#{String.pad_leading(to_string(i), 5, "0")}",
     Enum.random(statuses),
     amount,
     order_date,

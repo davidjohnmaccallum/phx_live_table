@@ -36,12 +36,37 @@ defmodule TableComponent.Order do
   def list_paginated(opts \\ []) do
     limit = Keyword.get(opts, :limit, 20)
     offset = Keyword.get(opts, :offset, 0)
+    sort_by = Keyword.get(opts, :sort_by)
+    sort_order = Keyword.get(opts, :sort_order, :asc)
 
-    __MODULE__
-    |> order_by([o], desc: o.order_date, desc: o.id)
+    query = from(o in __MODULE__, preload: :customer)
+
+    query =
+      case sort_by do
+        :order_number ->
+          order_by(query, [o], [{^sort_order, o.order_number}, {^sort_order, o.id}])
+
+        :customer ->
+          query
+          |> join(:left, [o], c in assoc(o, :customer))
+          |> order_by([o, c], [{^sort_order, c.name}, {^sort_order, o.id}])
+
+        :status ->
+          order_by(query, [o], [{^sort_order, o.status}, {^sort_order, o.id}])
+
+        :order_date ->
+          order_by(query, [o], [{^sort_order, o.order_date}, {^sort_order, o.id}])
+
+        :total_amount ->
+          order_by(query, [o], [{^sort_order, o.total_amount}, {^sort_order, o.id}])
+
+        nil ->
+          order_by(query, [o], [desc: o.order_date, desc: o.id])
+      end
+
+    query
     |> limit(^limit)
     |> offset(^offset)
-    |> preload(:customer)
     |> Repo.all()
   end
 
