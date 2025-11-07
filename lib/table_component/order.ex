@@ -1,6 +1,8 @@
 defmodule TableComponent.Order do
   use Ecto.Schema
   import Ecto.Changeset
+  import Ecto.Query
+  alias TableComponent.Repo
 
   schema "orders" do
     field :order_number, :string
@@ -15,7 +17,6 @@ defmodule TableComponent.Order do
     timestamps()
   end
 
-  @doc false
   def changeset(order, attrs) do
     order
     |> cast(attrs, [:order_number, :status, :total_amount, :order_date, :notes, :customer_id])
@@ -24,5 +25,11 @@ defmodule TableComponent.Order do
     |> validate_number(:total_amount, greater_than_or_equal_to: 0)
     |> unique_constraint(:order_number)
     |> foreign_key_constraint(:customer_id)
+  end
+
+  def list do
+    __MODULE__
+    |> preload(:customer)
+    |> Repo.all()
   end
 end

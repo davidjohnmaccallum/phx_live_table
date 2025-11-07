@@ -17,7 +17,7 @@ defmodule TableComponentWeb.Router do
   scope "/", TableComponentWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", HomeLive
   end
 
   # Other scopes may use custom stacks.

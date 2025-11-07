@@ -1,6 +1,8 @@
 defmodule TableComponent.OrderItem do
   use Ecto.Schema
   import Ecto.Changeset
+  import Ecto.Query
+  alias TableComponent.Repo
 
   schema "order_items" do
     field :product_name, :string
@@ -13,7 +15,6 @@ defmodule TableComponent.OrderItem do
     timestamps()
   end
 
-  @doc false
   def changeset(order_item, attrs) do
     order_item
     |> cast(attrs, [:product_name, :quantity, :unit_price, :total_price, :order_id])

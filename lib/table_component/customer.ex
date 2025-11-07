@@ -1,6 +1,8 @@
 defmodule TableComponent.Customer do
   use Ecto.Schema
   import Ecto.Changeset
+  import Ecto.Query
+  alias TableComponent.Repo
 
   schema "customers" do
     field :name, :string
@@ -15,7 +17,6 @@ defmodule TableComponent.Customer do
     timestamps()
   end
 
-  @doc false
   def changeset(customer, attrs) do
     customer
     |> cast(attrs, [:name, :email, :phone, :company, :status, :address])
