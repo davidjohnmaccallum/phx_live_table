@@ -146,3 +146,27 @@ defmodule TableComponent.Order do
     |> Enum.map(& &1.name)
   end
 end
+
+defimpl TableComponent.DataSource, for: Atom do
+  alias TableComponent.Order
+
+  def list_paginated(Order, opts) do
+    Order.list_paginated(opts)
+  end
+
+  def count(Order, opts) do
+    Order.count(opts)
+  end
+
+  def filter_options(Order, :status) do
+    Order.available_statuses()
+  end
+
+  def filter_options(Order, :customer) do
+    Order.available_customers()
+  end
+
+  def filter_options(Order, _column) do
+    []
+  end
+end

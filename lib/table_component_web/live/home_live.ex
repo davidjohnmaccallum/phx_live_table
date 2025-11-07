@@ -1,11 +1,11 @@
 defmodule TableComponentWeb.HomeLive do
   use TableComponentWeb, :live_view
-  alias TableComponent.Order
+  alias TableComponent.{Order, DataSource}
 
   def mount(_params, _session, socket) do
     if connected?(socket) do
-      total_count = Order.count()
-      orders = Order.list_paginated(limit: 100, offset: 0)
+      total_count = DataSource.count(Order, [])
+      orders = DataSource.list_paginated(Order, limit: 100, offset: 0)
 
       {:ok,
        socket
@@ -19,8 +19,8 @@ defmodule TableComponentWeb.HomeLive do
        |> assign(:filters, %{})
        |> assign(:filter_modal, nil)
        |> assign(:filter_options, %{
-         status: Order.available_statuses(),
-         customer: Order.available_customers()
+         status: DataSource.filter_options(Order, :status),
+         customer: DataSource.filter_options(Order, :customer)
        })
        |> stream(:orders, orders)}
     else
@@ -36,8 +36,8 @@ defmodule TableComponentWeb.HomeLive do
        |> assign(:filters, %{})
        |> assign(:filter_modal, nil)
        |> assign(:filter_options, %{
-         status: Order.available_statuses(),
-         customer: Order.available_customers()
+         status: DataSource.filter_options(Order, :status),
+         customer: DataSource.filter_options(Order, :customer)
        })
        |> stream(:orders, [])}
     end
@@ -49,7 +49,7 @@ defmodule TableComponentWeb.HomeLive do
     offset = (page - 1) * per_page
 
     orders =
-      Order.list_paginated(
+      DataSource.list_paginated(Order,
         limit: per_page,
         offset: offset,
         sort_by: socket.assigns.sort_by,
@@ -89,7 +89,7 @@ defmodule TableComponentWeb.HomeLive do
 
     # Reload data from beginning with new sort
     orders =
-      Order.list_paginated(
+      DataSource.list_paginated(Order,
         limit: 100,
         offset: 0,
         sort_by: new_sort_by,
@@ -97,7 +97,7 @@ defmodule TableComponentWeb.HomeLive do
         filters: socket.assigns.filters
       )
 
-    total_count = Order.count(filters: socket.assigns.filters)
+    total_count = DataSource.count(Order, filters: socket.assigns.filters)
 
     {:noreply,
      socket
@@ -143,7 +143,7 @@ defmodule TableComponentWeb.HomeLive do
 
     # Reload data with new filters
     orders =
-      Order.list_paginated(
+      DataSource.list_paginated(Order,
         limit: 100,
         offset: 0,
         sort_by: socket.assigns.sort_by,
@@ -151,7 +151,7 @@ defmodule TableComponentWeb.HomeLive do
         filters: socket.assigns.filters
       )
 
-    total_count = Order.count(filters: socket.assigns.filters)
+    total_count = DataSource.count(Order, filters: socket.assigns.filters)
 
     {:noreply,
      socket
@@ -168,7 +168,7 @@ defmodule TableComponentWeb.HomeLive do
     new_filters = Map.put(socket.assigns.filters, column_atom, [])
 
     orders =
-      Order.list_paginated(
+      DataSource.list_paginated(Order,
         limit: 100,
         offset: 0,
         sort_by: socket.assigns.sort_by,
@@ -176,7 +176,7 @@ defmodule TableComponentWeb.HomeLive do
         filters: new_filters
       )
 
-    total_count = Order.count(filters: new_filters)
+    total_count = DataSource.count(Order, filters: new_filters)
 
     {:noreply,
      socket
@@ -189,23 +189,40 @@ defmodule TableComponentWeb.HomeLive do
      |> stream(:orders, orders, reset: true)}
   end
 
-  defp sort_icon(column, sort_by, sort_order) do
-    cond do
-      sort_by == column && sort_order == :asc -> "↑"
-      sort_by == column && sort_order == :desc -> "↓"
-      true -> ""
-    end
-  end
-
-  defp has_active_filters?(filters, column) do
-    Map.get(filters, column, []) != []
-  end
-
-  defp get_filter_options(filter_options, column) do
-    Map.get(filter_options, column, [])
-  end
-
-  defp get_column_filters(filters, column) do
-    Map.get(filters, column, [])
+  def columns do
+    [
+      %{
+        field: :order_number,
+        label: "Order Number",
+        sortable: true
+      },
+      %{
+        field: :customer,
+        label: "Customer",
+        sortable: true,
+        filterable: true,
+        accessor: fn order -> order.customer.name end
+      },
+      %{
+        field: :status,
+        label: "Status",
+        sortable: true,
+        filterable: true,
+        format: &String.capitalize/1
+      },
+      %{
+        field: :order_date,
+        label: "Order Date",
+        sortable: true,
+        format: fn date -> Calendar.strftime(date, "%Y-%m-%d") end
+      },
+      %{
+        field: :total_amount,
+        label: "Total Amount",
+        sortable: true,
+        align: :right,
+        format: fn amount -> Decimal.to_string(amount) end
+      }
+    ]
   end
 end
