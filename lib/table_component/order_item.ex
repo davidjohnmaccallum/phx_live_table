@@ -1,8 +1,6 @@
 defmodule TableComponent.OrderItem do
   use Ecto.Schema
   import Ecto.Changeset
-  import Ecto.Query
-  alias TableComponent.Repo
 
   schema "order_items" do
     field :product_name, :string

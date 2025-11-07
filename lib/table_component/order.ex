@@ -32,4 +32,20 @@ defmodule TableComponent.Order do
     |> preload(:customer)
     |> Repo.all()
   end
+
+  def list_paginated(opts \\ []) do
+    limit = Keyword.get(opts, :limit, 20)
+    offset = Keyword.get(opts, :offset, 0)
+
+    __MODULE__
+    |> order_by([o], desc: o.order_date, desc: o.id)
+    |> limit(^limit)
+    |> offset(^offset)
+    |> preload(:customer)
+    |> Repo.all()
+  end
+
+  def count do
+    Repo.aggregate(__MODULE__, :count)
+  end
 end

@@ -1,8 +1,6 @@
 defmodule TableComponent.Customer do
   use Ecto.Schema
   import Ecto.Changeset
-  import Ecto.Query
-  alias TableComponent.Repo
 
   schema "customers" do
     field :name, :string

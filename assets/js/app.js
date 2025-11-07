@@ -64,11 +64,40 @@ const ResizableTable = {
   }
 };
 
+const InfiniteScroll = {
+  mounted() {
+    this.pending = false;
+    this.observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting && !this.pending) {
+          this.pending = true;
+          this.pushEvent("load-more", {}, () => {
+            this.pending = false;
+          });
+        }
+      },
+      {
+        root: null,
+        rootMargin: "200px",
+        threshold: 0.1,
+      }
+    );
+    this.observer.observe(this.el);
+  },
+  
+  destroyed() {
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+  }
+};
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, ResizableTable},
+  hooks: {...colocatedHooks, ResizableTable, InfiniteScroll},
 })
 
 // Show progress bar on live navigation and form submits
