@@ -32,13 +32,28 @@ customers = Enum.map(1..200, fn i ->
     "E-commerce Platform", "Manufacturing Corp", "Logistics Company"
   ]
 
+  countries = ["USA", "Canada", "UK", "Germany", "France", "Australia", "Japan", "Brazil"]
+  cities = ["New York", "Los Angeles", "Chicago", "Toronto", "London", "Berlin", "Paris", "Sydney", "Tokyo", "São Paulo"]
+  industries = ["Technology", "Healthcare", "Finance", "Retail", "Manufacturing", "Education", "Media", "Construction"]
+  managers = ["Alice Johnson", "Bob Smith", "Carol Williams", "David Brown", "Emma Davis", "Frank Miller", "Grace Wilson"]
+
   %{
     name: "Customer #{i}",
     email: "customer#{i}@example.com",
     phone: "+1-555-#{String.pad_leading(to_string(1000 + i), 4, "0")}",
     company: Enum.random(companies),
     status: Enum.random(statuses),
-    address: "#{i * 100} Business St, City, ST #{10000 + i}"
+    address: "#{i * 100} Business St, City, ST #{10000 + i}",
+    country: Enum.random(countries),
+    city: Enum.random(cities),
+    postal_code: String.pad_leading(to_string(10000 + i), 5, "0"),
+    website: "https://customer#{i}.example.com",
+    industry: Enum.random(industries),
+    employee_count: Enum.random([10, 25, 50, 100, 250, 500, 1000, 2500]),
+    annual_revenue: Decimal.new(Enum.random(100_000..10_000_000)),
+    account_manager: Enum.random(managers),
+    last_contact_date: Date.add(Date.utc_today(), -Enum.random(1..365)),
+    notes_count: Enum.random(0..50)
   }
 end)
 

@@ -11,6 +11,16 @@ defmodule TableComponent.Customer do
     field :company, :string
     field :status, :string, default: "active"
     field :address, :string
+    field :country, :string
+    field :city, :string
+    field :postal_code, :string
+    field :website, :string
+    field :industry, :string
+    field :employee_count, :integer
+    field :annual_revenue, :decimal
+    field :account_manager, :string
+    field :last_contact_date, :date
+    field :notes_count, :integer
 
     has_many :orders, TableComponent.Order
 
@@ -19,7 +29,12 @@ defmodule TableComponent.Customer do
 
   def changeset(customer, attrs) do
     customer
-    |> cast(attrs, [:name, :email, :phone, :company, :status, :address])
+    |> cast(attrs, [
+      :name, :email, :phone, :company, :status, :address,
+      :country, :city, :postal_code, :website, :industry,
+      :employee_count, :annual_revenue, :account_manager,
+      :last_contact_date, :notes_count
+    ])
     |> validate_required([:name, :email, :status])
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must have the @ sign and no spaces")
     |> validate_inclusion(:status, ["active", "inactive", "pending"])
