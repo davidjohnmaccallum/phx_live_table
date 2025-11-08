@@ -16,7 +16,7 @@ config :table_component, TableComponentWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
-    formats: [html: TableComponentWeb.ErrorHTML, json: TableComponentWeb.ErrorJSON],
+    formats: [html: TableComponentWeb.ErrorHTML],
     layout: false
   ],
   pubsub_server: TableComponent.PubSub,
