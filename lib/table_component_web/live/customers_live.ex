@@ -10,12 +10,14 @@ defmodule TableComponentWeb.CustomersLive do
       %{
         field: :name,
         label: "Name",
-        sortable: true
+        sortable: true,
+        search: true
       },
       %{
         field: :email,
         label: "Email",
-        sortable: true
+        sortable: true,
+        search: true
       },
       %{
         field: :phone,
@@ -24,7 +26,8 @@ defmodule TableComponentWeb.CustomersLive do
       %{
         field: :company,
         label: "Company",
-        sortable: true
+        sortable: true,
+        search: true
       },
       %{
         field: :status,

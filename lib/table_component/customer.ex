@@ -32,10 +32,12 @@ defmodule TableComponent.Customer do
     sort_by = Keyword.get(opts, :sort_by)
     sort_order = Keyword.get(opts, :sort_order, :asc)
     filters = Keyword.get(opts, :filters, %{})
+    search = Keyword.get(opts, :search, %{})
 
     query = from(c in __MODULE__)
 
     query = apply_filters(query, filters)
+    query = apply_search(query, search)
 
     query =
       case sort_by do
@@ -77,11 +79,38 @@ defmodule TableComponent.Customer do
     end)
   end
 
+  defp apply_search(query, search) do
+    Enum.reduce(search, query, fn {column, term}, acc_query ->
+      if term != "" do
+        case column do
+          :email ->
+            search_pattern = "%#{term}%"
+            from(c in acc_query, where: ilike(c.email, ^search_pattern))
+
+          :name ->
+            search_pattern = "%#{term}%"
+            from(c in acc_query, where: ilike(c.name, ^search_pattern))
+
+          :company ->
+            search_pattern = "%#{term}%"
+            from(c in acc_query, where: ilike(c.company, ^search_pattern))
+
+          _ ->
+            acc_query
+        end
+      else
+        acc_query
+      end
+    end)
+  end
+
   def count(opts \\ []) do
     filters = Keyword.get(opts, :filters, %{})
+    search = Keyword.get(opts, :search, %{})
 
     query = from(c in __MODULE__, select: count(c.id))
     query = apply_count_filters(query, filters)
+    query = apply_count_search(query, search)
     Repo.one(query)
   end
 
@@ -91,6 +120,31 @@ defmodule TableComponent.Customer do
         case column do
           :status ->
             from(c in acc_query, where: c.status in ^values)
+
+          _ ->
+            acc_query
+        end
+      else
+        acc_query
+      end
+    end)
+  end
+
+  defp apply_count_search(query, search) do
+    Enum.reduce(search, query, fn {column, term}, acc_query ->
+      if term != "" do
+        case column do
+          :email ->
+            search_pattern = "%#{term}%"
+            from(c in acc_query, where: ilike(c.email, ^search_pattern))
+
+          :name ->
+            search_pattern = "%#{term}%"
+            from(c in acc_query, where: ilike(c.name, ^search_pattern))
+
+          :company ->
+            search_pattern = "%#{term}%"
+            from(c in acc_query, where: ilike(c.company, ^search_pattern))
 
           _ ->
             acc_query

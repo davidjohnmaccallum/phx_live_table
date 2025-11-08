@@ -93,7 +93,20 @@ const InfiniteScroll = {
   }
 };
 
-const FilterModal = {
+// Helper function to position modals relative to trigger buttons
+const positionModalBelowButton = (modal, buttonId) => {
+  const button = document.getElementById(buttonId);
+  if (!button) return;
+  
+  const buttonRect = button.getBoundingClientRect();
+  
+  // Position modal aligned to bottom-right of the button
+  modal.style.top = (buttonRect.bottom + 4) + 'px';
+  modal.style.left = (buttonRect.right - modal.offsetWidth) + 'px';
+};
+
+// Hook factory for modals that need positioning
+const createModalHook = (buttonPrefix) => ({
   mounted() {
     this.positionModal();
   },
@@ -104,23 +117,19 @@ const FilterModal = {
   
   positionModal() {
     const column = this.el.dataset.column;
-    const filterButton = document.getElementById(`filter-button-${column}`);
-    if (!filterButton) return;
-    
-    const buttonRect = filterButton.getBoundingClientRect();
-    const modal = this.el;
-    
-    // Position modal aligned to bottom-right of the filter button
-    modal.style.top = (buttonRect.bottom + 4) + 'px';
-    modal.style.left = (buttonRect.right - modal.offsetWidth) + 'px';
+    const buttonId = `${buttonPrefix}-${column}`;
+    positionModalBelowButton(this.el, buttonId);
   }
-};
+});
+
+const FilterModal = createModalHook('filter-button');
+const SearchModal = createModalHook('search-button');
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, ResizableTable, InfiniteScroll, FilterModal},
+  hooks: {...colocatedHooks, ResizableTable, InfiniteScroll, FilterModal, SearchModal},
 })
 
 // Show progress bar on live navigation and form submits

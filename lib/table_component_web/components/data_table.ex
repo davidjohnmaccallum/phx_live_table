@@ -2,9 +2,10 @@ defmodule TableComponentWeb.Components.DataTable do
   use TableComponentWeb, :live_component
   alias TableComponent.DataSource
   import TableComponentWeb.Components.FilterModal
+  import TableComponentWeb.Components.SearchModal
 
   @doc """
-  Renders a data table with sorting, filtering, and infinite scroll.
+  Renders a data table with sorting, filtering, searching, and infinite scroll.
 
   ## Attributes
     * `id` - Required. Unique ID for the table
@@ -17,6 +18,7 @@ defmodule TableComponentWeb.Components.DataTable do
     * `:label` - Required. Display label (string)
     * `:sortable` - Whether column is sortable (boolean, default: false)
     * `:filterable` - Whether column is filterable (boolean, default: false)
+    * `:search` - Whether column is searchable (boolean, default: false)
     * `:accessor` - Function to get value from record (default: &Map.get(&1, field))
     * `:format` - Function to format value for display (default: &to_string/1)
     * `:align` - Text alignment (:left, :right, :center, default: :left)
@@ -51,6 +53,9 @@ defmodule TableComponentWeb.Components.DataTable do
         |> assign(:filters, %{})
         |> assign(:open_filter_column, nil)
         |> assign(:filter_options, filter_options)
+        |> assign(:open_search_column, nil)
+        |> assign(:search_terms, %{})
+        |> assign(:pending_search_term, "")
         |> stream(stream_name, records)
       else
         socket
@@ -65,6 +70,9 @@ defmodule TableComponentWeb.Components.DataTable do
         |> assign(:filters, %{})
         |> assign(:open_filter_column, nil)
         |> assign(:filter_options, %{})
+        |> assign(:open_search_column, nil)
+        |> assign(:search_terms, %{})
+        |> assign(:pending_search_term, "")
         |> stream(assigns.stream_name, [])
       end
 
@@ -82,7 +90,8 @@ defmodule TableComponentWeb.Components.DataTable do
         offset: offset,
         sort_by: socket.assigns.sort_by,
         sort_order: socket.assigns.sort_order,
-        filters: socket.assigns.filters
+        filters: socket.assigns.filters,
+        search: socket.assigns.search_terms
       )
 
     has_more = length(records) == per_page
@@ -119,10 +128,15 @@ defmodule TableComponentWeb.Components.DataTable do
         offset: 0,
         sort_by: new_sort_by,
         sort_order: new_sort_order,
-        filters: socket.assigns.filters
+        filters: socket.assigns.filters,
+        search: socket.assigns.search_terms
       )
 
-    total_count = DataSource.count(socket.assigns.data_module, filters: socket.assigns.filters)
+    total_count =
+      DataSource.count(socket.assigns.data_module,
+        filters: socket.assigns.filters,
+        search: socket.assigns.search_terms
+      )
 
     {:noreply,
      socket
@@ -167,10 +181,15 @@ defmodule TableComponentWeb.Components.DataTable do
         offset: 0,
         sort_by: socket.assigns.sort_by,
         sort_order: socket.assigns.sort_order,
-        filters: socket.assigns.filters
+        filters: socket.assigns.filters,
+        search: socket.assigns.search_terms
       )
 
-    total_count = DataSource.count(socket.assigns.data_module, filters: socket.assigns.filters)
+    total_count =
+      DataSource.count(socket.assigns.data_module,
+        filters: socket.assigns.filters,
+        search: socket.assigns.search_terms
+      )
 
     {:noreply,
      socket
@@ -192,10 +211,15 @@ defmodule TableComponentWeb.Components.DataTable do
         offset: 0,
         sort_by: socket.assigns.sort_by,
         sort_order: socket.assigns.sort_order,
-        filters: new_filters
+        filters: new_filters,
+        search: socket.assigns.search_terms
       )
 
-    total_count = DataSource.count(socket.assigns.data_module, filters: new_filters)
+    total_count =
+      DataSource.count(socket.assigns.data_module,
+        filters: new_filters,
+        search: socket.assigns.search_terms
+      )
 
     {:noreply,
      socket
@@ -205,6 +229,104 @@ defmodule TableComponentWeb.Components.DataTable do
      |> assign(:has_more, length(records) == 100)
      |> assign(:loaded_count, length(records))
      |> assign(:open_filter_column, nil)
+     |> stream(socket.assigns.stream_name, records, reset: true)}
+  end
+
+  def handle_event("open-search-modal", %{"column" => column}, socket) do
+    column_atom = String.to_existing_atom(column)
+    current_search = Map.get(socket.assigns.search_terms, column_atom, "")
+
+    socket =
+      socket
+      |> assign(:open_search_column, column_atom)
+      |> assign(:pending_search_term, current_search)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("close-search-modal", _params, socket) do
+    {:noreply, assign(socket, :open_search_column, nil)}
+  end
+
+  def handle_event("update-search", %{"key" => "Enter", "value" => value}, socket) do
+    # When Enter is pressed, update the value and apply the search
+    socket =
+      socket
+      |> assign(:pending_search_term, value)
+
+    handle_event("apply-search", %{}, socket)
+  end
+
+  def handle_event("update-search", %{"value" => value}, socket) do
+    {:noreply, assign(socket, :pending_search_term, value)}
+  end
+
+  def handle_event("apply-search", _params, socket) do
+    column = socket.assigns.open_search_column
+    search_term = socket.assigns.pending_search_term
+
+    new_search_terms =
+      if search_term == "" do
+        Map.delete(socket.assigns.search_terms, column)
+      else
+        Map.put(socket.assigns.search_terms, column, search_term)
+      end
+
+    records =
+      DataSource.list_paginated(socket.assigns.data_module,
+        limit: 100,
+        offset: 0,
+        sort_by: socket.assigns.sort_by,
+        sort_order: socket.assigns.sort_order,
+        filters: socket.assigns.filters,
+        search: new_search_terms
+      )
+
+    total_count =
+      DataSource.count(socket.assigns.data_module,
+        filters: socket.assigns.filters,
+        search: new_search_terms
+      )
+
+    {:noreply,
+     socket
+     |> assign(:page, 1)
+     |> assign(:search_terms, new_search_terms)
+     |> assign(:total_count, total_count)
+     |> assign(:has_more, length(records) == 100)
+     |> assign(:loaded_count, length(records))
+     |> assign(:open_search_column, nil)
+     |> stream(socket.assigns.stream_name, records, reset: true)}
+  end
+
+  def handle_event("clear-search", %{"column" => _column}, socket) do
+    new_search_terms = Map.delete(socket.assigns.search_terms, socket.assigns.open_search_column)
+
+    records =
+      DataSource.list_paginated(socket.assigns.data_module,
+        limit: 100,
+        offset: 0,
+        sort_by: socket.assigns.sort_by,
+        sort_order: socket.assigns.sort_order,
+        filters: socket.assigns.filters,
+        search: new_search_terms
+      )
+
+    total_count =
+      DataSource.count(socket.assigns.data_module,
+        filters: socket.assigns.filters,
+        search: new_search_terms
+      )
+
+    {:noreply,
+     socket
+     |> assign(:page, 1)
+     |> assign(:search_terms, new_search_terms)
+     |> assign(:pending_search_term, "")
+     |> assign(:total_count, total_count)
+     |> assign(:has_more, length(records) == 100)
+     |> assign(:loaded_count, length(records))
+     |> assign(:open_search_column, nil)
      |> stream(socket.assigns.stream_name, records, reset: true)}
   end
 
@@ -221,6 +343,14 @@ defmodule TableComponentWeb.Components.DataTable do
       nil -> false
       [] -> false
       _list -> true
+    end
+  end
+
+  defp has_active_search?(search_terms, column) when is_atom(column) do
+    case Map.get(search_terms, column) do
+      nil -> false
+      "" -> false
+      _term -> true
     end
   end
 
