@@ -75,6 +75,10 @@ defmodule TableComponent.Order do
   end
 
   defp apply_filters(query, filters) do
+    apply_filter_conditions(query, filters)
+  end
+
+  defp apply_filter_conditions(query, filters) do
     require Logger
     Logger.debug("Applying filters: #{inspect(filters)}")
 
@@ -106,31 +110,9 @@ defmodule TableComponent.Order do
 
     query = from(o in __MODULE__)
 
-    query = apply_count_filters(query, filters)
+    query = apply_filter_conditions(query, filters)
 
     Repo.aggregate(query, :count)
-  end
-
-  defp apply_count_filters(query, filters) do
-    Enum.reduce(filters, query, fn {column, values}, acc_query ->
-      if values != [] do
-        case column do
-          :status ->
-            from(o in acc_query, where: o.status in ^values)
-
-          :customer ->
-            from(o in acc_query,
-              join: c in assoc(o, :customer),
-              where: c.name in ^values
-            )
-
-          _ ->
-            acc_query
-        end
-      else
-        acc_query
-      end
-    end)
   end
 
   def available_statuses do

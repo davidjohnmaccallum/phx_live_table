@@ -64,6 +64,10 @@ defmodule TableComponent.Customer do
   end
 
   defp apply_filters(query, filters) do
+    apply_filter_conditions(query, filters)
+  end
+
+  defp apply_filter_conditions(query, filters) do
     Enum.reduce(filters, query, fn {column, values}, acc_query ->
       if values != [] do
         case column do
@@ -80,19 +84,22 @@ defmodule TableComponent.Customer do
   end
 
   defp apply_search(query, search) do
+    apply_search_conditions(query, search)
+  end
+
+  defp apply_search_conditions(query, search) do
     Enum.reduce(search, query, fn {column, term}, acc_query ->
       if term != "" do
+        search_pattern = "%#{term}%"
+
         case column do
           :email ->
-            search_pattern = "%#{term}%"
             from(c in acc_query, where: ilike(c.email, ^search_pattern))
 
           :name ->
-            search_pattern = "%#{term}%"
             from(c in acc_query, where: ilike(c.name, ^search_pattern))
 
           :company ->
-            search_pattern = "%#{term}%"
             from(c in acc_query, where: ilike(c.company, ^search_pattern))
 
           _ ->
@@ -109,50 +116,9 @@ defmodule TableComponent.Customer do
     search = Keyword.get(opts, :search, %{})
 
     query = from(c in __MODULE__, select: count(c.id))
-    query = apply_count_filters(query, filters)
-    query = apply_count_search(query, search)
+    query = apply_filter_conditions(query, filters)
+    query = apply_search_conditions(query, search)
     Repo.one(query)
-  end
-
-  defp apply_count_filters(query, filters) do
-    Enum.reduce(filters, query, fn {column, values}, acc_query ->
-      if values != [] do
-        case column do
-          :status ->
-            from(c in acc_query, where: c.status in ^values)
-
-          _ ->
-            acc_query
-        end
-      else
-        acc_query
-      end
-    end)
-  end
-
-  defp apply_count_search(query, search) do
-    Enum.reduce(search, query, fn {column, term}, acc_query ->
-      if term != "" do
-        case column do
-          :email ->
-            search_pattern = "%#{term}%"
-            from(c in acc_query, where: ilike(c.email, ^search_pattern))
-
-          :name ->
-            search_pattern = "%#{term}%"
-            from(c in acc_query, where: ilike(c.name, ^search_pattern))
-
-          :company ->
-            search_pattern = "%#{term}%"
-            from(c in acc_query, where: ilike(c.company, ^search_pattern))
-
-          _ ->
-            acc_query
-        end
-      else
-        acc_query
-      end
-    end)
   end
 
   def available_statuses do

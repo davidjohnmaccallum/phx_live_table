@@ -16,7 +16,7 @@ defprotocol TableComponent.DataSource do
   """
 
   @doc """
-  List paginated records with optional filters and sorting.
+  List paginated records with optional filters, search, and sorting.
 
   ## Options
     * `:limit` - Maximum number of records to return (default: 20)
@@ -24,15 +24,17 @@ defprotocol TableComponent.DataSource do
     * `:sort_by` - Column to sort by (atom)
     * `:sort_order` - Sort direction (:asc or :desc)
     * `:filters` - Map of column filters %{column_atom => [values]}
+    * `:search` - Map of column search terms %{column_atom => "search_string"}
   """
   @spec list_paginated(t(), keyword()) :: [struct()]
   def list_paginated(data, opts)
 
   @doc """
-  Count total records with optional filters.
+  Count total records with optional filters and search.
 
   ## Options
     * `:filters` - Map of column filters %{column_atom => [values]}
+    * `:search` - Map of column search terms %{column_atom => "search_string"}
   """
   @spec count(t(), keyword()) :: non_neg_integer()
   def count(data, opts)
