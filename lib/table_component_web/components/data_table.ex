@@ -1,6 +1,7 @@
 defmodule TableComponentWeb.Components.DataTable do
   use TableComponentWeb, :live_component
   alias TableComponent.DataSource
+  import TableComponentWeb.Components.FilterModal
 
   @doc """
   Renders a data table with sorting, filtering, and infinite scroll.
@@ -48,7 +49,7 @@ defmodule TableComponentWeb.Components.DataTable do
         |> assign(:sort_by, nil)
         |> assign(:sort_order, :asc)
         |> assign(:filters, %{})
-        |> assign(:filter_modal, nil)
+        |> assign(:open_filter_column, nil)
         |> assign(:filter_options, filter_options)
         |> stream(stream_name, records)
       else
@@ -62,7 +63,7 @@ defmodule TableComponentWeb.Components.DataTable do
         |> assign(:sort_by, nil)
         |> assign(:sort_order, :asc)
         |> assign(:filters, %{})
-        |> assign(:filter_modal, nil)
+        |> assign(:open_filter_column, nil)
         |> assign(:filter_options, %{})
         |> stream(assigns.stream_name, [])
       end
@@ -135,11 +136,11 @@ defmodule TableComponentWeb.Components.DataTable do
   end
 
   def handle_event("open-filter-modal", %{"column" => column}, socket) do
-    {:noreply, assign(socket, :filter_modal, String.to_existing_atom(column))}
+    {:noreply, assign(socket, :open_filter_column, String.to_existing_atom(column))}
   end
 
   def handle_event("close-filter-modal", _params, socket) do
-    {:noreply, assign(socket, :filter_modal, nil)}
+    {:noreply, assign(socket, :open_filter_column, nil)}
   end
 
   def handle_event("toggle-filter", %{"column" => column, "filter-value" => value}, socket) do
@@ -177,7 +178,7 @@ defmodule TableComponentWeb.Components.DataTable do
      |> assign(:total_count, total_count)
      |> assign(:has_more, length(records) == 100)
      |> assign(:loaded_count, length(records))
-     |> assign(:filter_modal, nil)
+     |> assign(:open_filter_column, nil)
      |> stream(socket.assigns.stream_name, records, reset: true)}
   end
 
@@ -203,7 +204,7 @@ defmodule TableComponentWeb.Components.DataTable do
      |> assign(:total_count, total_count)
      |> assign(:has_more, length(records) == 100)
      |> assign(:loaded_count, length(records))
-     |> assign(:filter_modal, nil)
+     |> assign(:open_filter_column, nil)
      |> stream(socket.assigns.stream_name, records, reset: true)}
   end
 

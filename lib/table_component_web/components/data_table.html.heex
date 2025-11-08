@@ -74,81 +74,15 @@
     Record count: {Number.Delimit.number_to_delimited(@total_count, precision: 0)} Showing: {Number.Delimit.number_to_delimited(@loaded_count, precision: 0)}
   </div>
 
-  <%!-- Filter Modal --%>
-  <div
-    :if={@filter_modal != nil}
-    class="fixed inset-0 z-50"
-  >
-    <div
-      phx-hook="FilterModal"
-      id="filter-modal"
-      data-column={@filter_modal}
-      class="fixed bg-white rounded-lg shadow-lg border border-zinc-300 w-64 flex flex-col max-h-96"
-      phx-window-keydown="close-filter-modal"
-      phx-key="escape"
-      phx-click-away="close-filter-modal"
-      phx-target={@myself}
-    >
-      <div class="flex items-center justify-between px-4 py-2 border-b border-zinc-200 flex-shrink-0">
-        <h3 class="text-sm font-semibold text-zinc-900 capitalize">Filter by {@filter_modal |> to_string() |> String.replace("_", " ")}</h3>
-        <button
-          type="button"
-          phx-click="close-filter-modal"
-          phx-target={@myself}
-          class="text-zinc-400 hover:text-zinc-600"
-        >
-          <.icon name="hero-x-mark" class="w-4 h-4" />
-        </button>
-      </div>
-
-      <div class="px-4 py-2 overflow-y-auto flex-1">
-        <div class="space-y-1">
-          <div :for={option <- get_filter_options(@filter_options, @filter_modal)} class="flex items-center">
-            <label class="flex items-center cursor-pointer w-full py-1 px-2 rounded hover:bg-zinc-50">
-              <input
-                type="checkbox"
-                checked={option in get_column_filters(@filters, @filter_modal)}
-                phx-click="toggle-filter"
-                phx-value-column={@filter_modal}
-                phx-value-filter-value={option}
-                phx-target={@myself}
-                class="w-4 h-4 text-blue-600 border-zinc-300 rounded focus:ring-blue-500"
-              />
-              <span class="ml-2 text-sm text-zinc-900 capitalize">{option}</span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex items-center justify-between gap-2 px-4 py-2 border-t border-zinc-200 flex-shrink-0">
-        <button
-          type="button"
-          phx-click="clear-filters"
-          phx-value-column={@filter_modal}
-          phx-target={@myself}
-          class="px-3 py-1 text-xs font-medium text-zinc-700 hover:text-zinc-900"
-        >
-          Clear All
-        </button>
-        <div class="flex gap-2">
-          <button
-            type="button"
-            phx-click="close-filter-modal"
-            phx-target={@myself}
-            class="px-3 py-1 text-xs font-medium text-zinc-700 bg-zinc-100 rounded hover:bg-zinc-200"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            phx-click="apply-filters"
-            phx-target={@myself}
-            class="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
-          >
-            Apply
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <.filter_modal
+    :if={@open_filter_column != nil}
+    column={@open_filter_column}
+    filter_options={get_filter_options(@filter_options, @open_filter_column)}
+    selected_filters={get_column_filters(@filters, @open_filter_column)}
+    on_close="close-filter-modal"
+    on_toggle="toggle-filter"
+    on_clear="clear-filters"
+    on_apply="apply-filters"
+    target={@myself}
+  />
 </div>
