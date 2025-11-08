@@ -1,23 +1,15 @@
 defmodule TableComponentWeb.Components.DataTable do
-  use Phoenix.Component
-  import TableComponentWeb.CoreComponents
+  use TableComponentWeb, :live_component
+  alias TableComponent.DataSource
 
   @doc """
   Renders a data table with sorting, filtering, and infinite scroll.
 
   ## Attributes
     * `id` - Required. Unique ID for the table
-    * `stream` - Required. LiveView stream containing the data
+    * `data_module` - Required. Module containing the data (e.g., Order, Customer)
     * `columns` - Required. List of column definitions
-    * `sort_by` - Current sort column (atom)
-    * `sort_order` - Current sort order (:asc or :desc)
-    * `filters` - Map of active filters %{column => [values]}
-    * `filter_modal` - Currently open filter modal column (atom or nil)
-    * `filter_options` - Map of available filter options %{column => [values]}
-    * `total_count` - Total number of records
-    * `loaded_count` - Number of loaded records
-    * `has_more` - Whether more records are available
-    * `page` - Current page number
+    * `stream_name` - Required. Name of the stream (atom, e.g., :orders)
 
   ## Column Definition
     * `:field` - Required. Field name (atom)
@@ -29,166 +21,190 @@ defmodule TableComponentWeb.Components.DataTable do
     * `:align` - Text alignment (:left, :right, :center, default: :left)
     * `:class` - Additional CSS classes
   """
-  attr :id, :string, required: true
-  attr :stream, :any, required: true
-  attr :columns, :list, required: true
-  attr :sort_by, :atom, default: nil
-  attr :sort_order, :atom, default: :asc
-  attr :filters, :map, default: %{}
-  attr :filter_modal, :atom, default: nil
-  attr :filter_options, :map, default: %{}
-  attr :total_count, :integer, required: true
-  attr :loaded_count, :integer, required: true
-  attr :has_more, :boolean, default: false
-  attr :page, :integer, default: 1
 
-  def data_table(assigns) do
-    ~H"""
-    <div class="flex-1 flex flex-col overflow-hidden pb-10">
-      <table class="w-full border-collapse bg-white" id={"#{@id}-table"} phx-hook="ResizableTable">
-        <thead class="bg-zinc-100 sticky top-0 z-10">
-          <tr>
-            <th
-              :for={column <- @columns}
-              class={[
-                "px-3 py-2 text-left text-xs font-semibold text-zinc-700 uppercase tracking-wider border-r border-b border-zinc-300 relative group",
-                last_column?(column, @columns) && "border-r-0"
-              ]}
-            >
-              <div class="flex items-center justify-between gap-2">
-                <%= if column[:sortable] do %>
-                  <button
-                    type="button"
-                    phx-click="sort"
-                    phx-value-column={column.field}
-                    class="flex items-center gap-1 hover:text-blue-600 flex-1"
-                  >
-                    {column.label}
-                    <span class="text-blue-600 font-bold">{sort_icon(column.field, @sort_by, @sort_order)}</span>
-                  </button>
-                <% else %>
-                  <span>{column.label}</span>
-                <% end %>
+  def update(assigns, socket) do
+    socket =
+      if connected?(socket) do
+        data_module = assigns.data_module
+        stream_name = assigns.stream_name
 
-                <%= if column[:filterable] do %>
-                  <button
-                    type="button"
-                    id={"filter-button-#{column.field}"}
-                    phx-click="open-filter-modal"
-                    phx-value-column={column.field}
-                    class={[
-                      "p-1 rounded hover:bg-zinc-200",
-                      has_active_filters?(@filters, column.field) && "bg-blue-500 text-white hover:bg-blue-600"
-                    ]}
-                  >
-                    <.icon name="hero-funnel" class="w-3 h-3" />
-                  </button>
-                <% end %>
-              </div>
-              <%= if !last_column?(column, @columns) do %>
-                <div class="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-500 resize-handle"></div>
-              <% end %>
-            </th>
-          </tr>
-        </thead>
-        <tbody id={@id} phx-update="stream">
-          <tr
-            :for={{dom_id, record} <- @stream}
-            id={dom_id}
-            class="border-b border-zinc-200 hover:bg-blue-50 cursor-pointer"
-          >
-            <td
-              :for={column <- @columns}
-              class={[
-                "px-3 py-2 text-sm text-zinc-900 border-r border-zinc-200 whitespace-nowrap overflow-hidden text-ellipsis",
-                last_column?(column, @columns) && "border-r-0",
-                text_align_class(column[:align] || :left)
-              ]}
-            >
-              {format_cell_value(record, column)}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <div :if={@has_more} id={"#{@id}-infinite-scroll-marker"} phx-hook="InfiniteScroll" data-page={@page}></div>
-    </div>
+        # Get filter options for filterable columns
+        filter_options =
+          assigns.columns
+          |> Enum.filter(& &1[:filterable])
+          |> Enum.map(fn col -> {col.field, DataSource.filter_options(data_module, col.field)} end)
+          |> Enum.into(%{})
 
-    <div class="fixed bottom-0 left-64 right-0 bg-zinc-50 border-t border-zinc-300 px-6 py-2 text-sm text-zinc-700">
-      Record count: {Number.Delimit.number_to_delimited(@total_count, precision: 0)} Showing: {Number.Delimit.number_to_delimited(@loaded_count, precision: 0)}
-    </div>
+        total_count = DataSource.count(data_module, [])
+        records = DataSource.list_paginated(data_module, limit: 100, offset: 0)
 
-    <%!-- Filter Modal --%>
-    <div
-      :if={@filter_modal != nil}
-      class="fixed inset-0 z-50"
-    >
-      <div
-        phx-hook="FilterModal"
-        id="filter-modal"
-        data-column={@filter_modal}
-        class="fixed bg-white rounded-lg shadow-lg border border-zinc-300 w-64 flex flex-col max-h-96"
-        phx-window-keydown="close-filter-modal"
-        phx-key="escape"
-        phx-click-away="close-filter-modal"
-      >
-        <div class="flex items-center justify-between px-4 py-2 border-b border-zinc-200 flex-shrink-0">
-          <h3 class="text-sm font-semibold text-zinc-900 capitalize">Filter by {@filter_modal |> to_string() |> String.replace("_", " ")}</h3>
-          <button
-            type="button"
-            phx-click="close-filter-modal"
-            class="text-zinc-400 hover:text-zinc-600"
-          >
-            <.icon name="hero-x-mark" class="w-4 h-4" />
-          </button>
-        </div>
+        socket
+        |> assign(assigns)
+        |> assign(:page, 1)
+        |> assign(:per_page, 100)
+        |> assign(:has_more, length(records) == 100)
+        |> assign(:total_count, total_count)
+        |> assign(:loaded_count, length(records))
+        |> assign(:sort_by, nil)
+        |> assign(:sort_order, :asc)
+        |> assign(:filters, %{})
+        |> assign(:filter_modal, nil)
+        |> assign(:filter_options, filter_options)
+        |> stream(stream_name, records)
+      else
+        socket
+        |> assign(assigns)
+        |> assign(:page, 1)
+        |> assign(:per_page, 100)
+        |> assign(:has_more, true)
+        |> assign(:total_count, 0)
+        |> assign(:loaded_count, 0)
+        |> assign(:sort_by, nil)
+        |> assign(:sort_order, :asc)
+        |> assign(:filters, %{})
+        |> assign(:filter_modal, nil)
+        |> assign(:filter_options, %{})
+        |> stream(assigns.stream_name, [])
+      end
 
-        <div class="px-4 py-2 overflow-y-auto flex-1">
-          <div class="space-y-1">
-            <div :for={option <- get_filter_options(@filter_options, @filter_modal)} class="flex items-center">
-              <label class="flex items-center cursor-pointer w-full py-1 px-2 rounded hover:bg-zinc-50">
-                <input
-                  type="checkbox"
-                  checked={option in get_column_filters(@filters, @filter_modal)}
-                  phx-click="toggle-filter"
-                  phx-value-column={@filter_modal}
-                  phx-value-filter-value={option}
-                  class="w-4 h-4 text-blue-600 border-zinc-300 rounded focus:ring-blue-500"
-                />
-                <span class="ml-2 text-sm text-zinc-900 capitalize">{option}</span>
-              </label>
-            </div>
-          </div>
-        </div>
+    {:ok, socket}
+  end
 
-        <div class="flex items-center justify-between gap-2 px-4 py-2 border-t border-zinc-200 flex-shrink-0">
-          <button
-            type="button"
-            phx-click="clear-filters"
-            phx-value-column={@filter_modal}
-            class="px-3 py-1 text-xs font-medium text-zinc-700 hover:text-zinc-900"
-          >
-            Clear All
-          </button>
-          <div class="flex gap-2">
-            <button
-              type="button"
-              phx-click="close-filter-modal"
-              class="px-3 py-1 text-xs font-medium text-zinc-700 bg-zinc-100 rounded hover:bg-zinc-200"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              phx-click="apply-filters"
-              class="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
-            >
-              Apply
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-    """
+  def handle_event("load-more", _params, socket) do
+    page = socket.assigns.page + 1
+    per_page = socket.assigns.per_page
+    offset = (page - 1) * per_page
+
+    records =
+      DataSource.list_paginated(socket.assigns.data_module,
+        limit: per_page,
+        offset: offset,
+        sort_by: socket.assigns.sort_by,
+        sort_order: socket.assigns.sort_order,
+        filters: socket.assigns.filters
+      )
+
+    has_more = length(records) == per_page
+    loaded_count = socket.assigns.loaded_count + length(records)
+
+    {:noreply,
+     socket
+     |> assign(:page, page)
+     |> assign(:has_more, has_more)
+     |> assign(:loaded_count, loaded_count)
+     |> stream(socket.assigns.stream_name, records)}
+  end
+
+  def handle_event("sort", %{"column" => column}, socket) do
+    column_atom = String.to_existing_atom(column)
+    current_sort_by = socket.assigns.sort_by
+    current_sort_order = socket.assigns.sort_order
+
+    {new_sort_by, new_sort_order} =
+      cond do
+        current_sort_by == column_atom && current_sort_order == :asc ->
+          {column_atom, :desc}
+
+        current_sort_by == column_atom && current_sort_order == :desc ->
+          {nil, :asc}
+
+        true ->
+          {column_atom, :asc}
+      end
+
+    records =
+      DataSource.list_paginated(socket.assigns.data_module,
+        limit: 100,
+        offset: 0,
+        sort_by: new_sort_by,
+        sort_order: new_sort_order,
+        filters: socket.assigns.filters
+      )
+
+    total_count = DataSource.count(socket.assigns.data_module, filters: socket.assigns.filters)
+
+    {:noreply,
+     socket
+     |> assign(:page, 1)
+     |> assign(:sort_by, new_sort_by)
+     |> assign(:sort_order, new_sort_order)
+     |> assign(:total_count, total_count)
+     |> assign(:has_more, length(records) == 100)
+     |> assign(:loaded_count, length(records))
+     |> stream(socket.assigns.stream_name, records, reset: true)}
+  end
+
+  def handle_event("open-filter-modal", %{"column" => column}, socket) do
+    {:noreply, assign(socket, :filter_modal, String.to_existing_atom(column))}
+  end
+
+  def handle_event("close-filter-modal", _params, socket) do
+    {:noreply, assign(socket, :filter_modal, nil)}
+  end
+
+  def handle_event("toggle-filter", %{"column" => column, "filter-value" => value}, socket) do
+    column_atom = String.to_existing_atom(column)
+    current_filters = socket.assigns.filters
+    column_filters = Map.get(current_filters, column_atom, [])
+
+    new_column_filters =
+      if value in column_filters do
+        List.delete(column_filters, value)
+      else
+        [value | column_filters]
+      end
+
+    new_filters = Map.put(current_filters, column_atom, new_column_filters)
+
+    {:noreply, assign(socket, :filters, new_filters)}
+  end
+
+  def handle_event("apply-filters", _params, socket) do
+    records =
+      DataSource.list_paginated(socket.assigns.data_module,
+        limit: 100,
+        offset: 0,
+        sort_by: socket.assigns.sort_by,
+        sort_order: socket.assigns.sort_order,
+        filters: socket.assigns.filters
+      )
+
+    total_count = DataSource.count(socket.assigns.data_module, filters: socket.assigns.filters)
+
+    {:noreply,
+     socket
+     |> assign(:page, 1)
+     |> assign(:total_count, total_count)
+     |> assign(:has_more, length(records) == 100)
+     |> assign(:loaded_count, length(records))
+     |> assign(:filter_modal, nil)
+     |> stream(socket.assigns.stream_name, records, reset: true)}
+  end
+
+  def handle_event("clear-filters", %{"column" => column}, socket) do
+    column_atom = String.to_existing_atom(column)
+    new_filters = Map.put(socket.assigns.filters, column_atom, [])
+
+    records =
+      DataSource.list_paginated(socket.assigns.data_module,
+        limit: 100,
+        offset: 0,
+        sort_by: socket.assigns.sort_by,
+        sort_order: socket.assigns.sort_order,
+        filters: new_filters
+      )
+
+    total_count = DataSource.count(socket.assigns.data_module, filters: new_filters)
+
+    {:noreply,
+     socket
+     |> assign(:page, 1)
+     |> assign(:filters, new_filters)
+     |> assign(:total_count, total_count)
+     |> assign(:has_more, length(records) == 100)
+     |> assign(:loaded_count, length(records))
+     |> assign(:filter_modal, nil)
+     |> stream(socket.assigns.stream_name, records, reset: true)}
   end
 
   defp sort_icon(column, current_sort, order) do

@@ -6,19 +6,12 @@
         <h1 class="text-2xl font-semibold text-zinc-900">Customers</h1>
       </div>
       
-      <TableComponentWeb.Components.DataTable.data_table
+      <.live_component
+        module={TableComponentWeb.Components.DataTable}
         id="customers"
-        stream={@streams.customers}
+        data_module={TableComponent.Customer}
+        stream_name={:customers}
         columns={columns()}
-        sort_by={@sort_by}
-        sort_order={@sort_order}
-        filters={@filters}
-        filter_modal={@filter_modal}
-        filter_options={@filter_options}
-        total_count={@total_count}
-        loaded_count={@loaded_count}
-        has_more={@has_more}
-        page={@page}
       />
     </div>
   </div>
