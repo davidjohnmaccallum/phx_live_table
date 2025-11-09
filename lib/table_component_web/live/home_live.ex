@@ -18,7 +18,14 @@ defmodule TableComponentWeb.HomeLive do
         label: "Customer",
         sortable: true,
         filterable: true,
+        # Accessor: Navigate through associations to get nested data
         accessor: fn order -> order.customer.name end
+      },
+      %{
+        field: :customer_email,
+        label: "Email",
+        # Accessor: Get data from nested association
+        accessor: fn order -> order.customer.email end
       },
       %{
         field: :status,
