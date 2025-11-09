@@ -27,54 +27,46 @@ defmodule TableComponentWeb.Components.DataTable do
 
   def update(assigns, socket) do
     socket =
-      if connected?(socket) do
-        data_module = assigns.data_module
-        stream_name = assigns.stream_name
+      socket
+      |> assign(assigns)
+      |> assign(:page, 1)
+      |> assign(:per_page, 100)
+      |> assign(:sort_by, nil)
+      |> assign(:sort_order, :asc)
+      |> assign(:filters, %{})
+      |> assign(:open_filter_column, nil)
+      |> assign(:open_search_column, nil)
+      |> assign(:search_terms, %{})
+      |> assign(:pending_search_term, "")
 
-        # Get filter options for filterable columns
-        filter_options =
-          assigns.columns
-          |> Enum.filter(& &1[:filterable])
-          |> Enum.map(fn col -> {col.field, DataSource.filter_options(data_module, col.field)} end)
-          |> Enum.into(%{})
+    socket = if connected?(socket) do
+      data_module = assigns.data_module
+      stream_name = assigns.stream_name
 
-        total_count = DataSource.count(data_module, [])
-        records = DataSource.list_paginated(data_module, limit: 100, offset: 0)
+      # Get filter options for filterable columns
+      filter_options =
+        assigns.columns
+        |> Enum.filter(& &1[:filterable])
+        |> Enum.map(fn col -> {col.field, DataSource.filter_options(data_module, col.field)} end)
+        |> Enum.into(%{})
 
-        socket
-        |> assign(assigns)
-        |> assign(:page, 1)
-        |> assign(:per_page, 100)
-        |> assign(:has_more, length(records) == 100)
-        |> assign(:total_count, total_count)
-        |> assign(:loaded_count, length(records))
-        |> assign(:sort_by, nil)
-        |> assign(:sort_order, :asc)
-        |> assign(:filters, %{})
-        |> assign(:open_filter_column, nil)
-        |> assign(:filter_options, filter_options)
-        |> assign(:open_search_column, nil)
-        |> assign(:search_terms, %{})
-        |> assign(:pending_search_term, "")
-        |> stream(stream_name, records)
-      else
-        socket
-        |> assign(assigns)
-        |> assign(:page, 1)
-        |> assign(:per_page, 100)
-        |> assign(:has_more, true)
-        |> assign(:total_count, 0)
-        |> assign(:loaded_count, 0)
-        |> assign(:sort_by, nil)
-        |> assign(:sort_order, :asc)
-        |> assign(:filters, %{})
-        |> assign(:open_filter_column, nil)
-        |> assign(:filter_options, %{})
-        |> assign(:open_search_column, nil)
-        |> assign(:search_terms, %{})
-        |> assign(:pending_search_term, "")
-        |> stream(assigns.stream_name, [])
-      end
+      total_count = DataSource.count(data_module, [])
+      records = DataSource.list_paginated(data_module, limit: 100, offset: 0)
+
+      socket
+      |> assign(:has_more, length(records) == 100)
+      |> assign(:total_count, total_count)
+      |> assign(:loaded_count, length(records))
+      |> assign(:filter_options, filter_options)
+      |> stream(stream_name, records)
+    else
+      socket
+      |> assign(:has_more, true)
+      |> assign(:total_count, 0)
+      |> assign(:loaded_count, 0)
+      |> assign(:filter_options, %{})
+      |> stream(assigns.stream_name, [])
+    end
 
     {:ok, socket}
   end
