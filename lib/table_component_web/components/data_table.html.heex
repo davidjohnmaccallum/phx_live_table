@@ -67,6 +67,9 @@
         <tr
           :for={{dom_id, record} <- @streams[@stream_name]}
           id={dom_id}
+          phx-click="row-click"
+          phx-value-id={record.id}
+          phx-target={@myself}
           class="border-b border-zinc-200 hover:bg-blue-50 cursor-pointer"
         >
           <td

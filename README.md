@@ -178,10 +178,22 @@ end
         data_module={MyApp.Customer}
         stream_name={:customers}
         columns={columns()}
+        on_row_click="customer-clicked"
       />
     </div>
   </div>
 </Layouts.app>
+```
+
+### 4. Handle Row Clicks (Optional)
+
+If you want to respond to row clicks, add a `handle_info/2` callback in your LiveView:
+
+```elixir
+def handle_info({"customer-clicked", id}, socket) do
+  # Navigate to customer detail page, open a modal, etc.
+  {:noreply, push_navigate(socket, to: ~p"/customers/#{id}")}
+end
 ```
 
 ## Column Options
@@ -260,11 +272,13 @@ Each column in the `columns/0` function supports the following options:
 The `DataTable` live component accepts the following props:
 
 | Prop | Type | Required | Description |
+| Prop | Type | Required | Description |
 |------|------|----------|-------------|
 | `id` | `string` | ✅ | Unique identifier for the component |
 | `data_module` | `module` | ✅ | Your schema module (e.g., `MyApp.Customer`) |
 | `stream_name` | `atom` | ✅ | Name for the LiveView stream (e.g., `:customers`) |
 | `columns` | `list` | ✅ | List of column definitions |
+| `on_row_click` | `string` | ❌ | Event name to send to parent when row is clicked |
 
 ## How It Works
 
@@ -275,6 +289,21 @@ The component uses LiveView streams for optimal performance with large datasets.
 ### Infinite Scroll
 
 As users scroll to the bottom of the table, the component automatically loads the next batch of records. The default page size is 100 records per load.
+
+### Row Click Handler
+
+When a user clicks on a table row, the component sends a message to the parent LiveView if `on_row_click` is specified. The message format is `{event_name, record_id}`, which you can handle in your LiveView's `handle_info/2` callback.
+
+Example:
+```elixir
+# In template
+<.live_component on_row_click="customer-clicked" ... />
+
+# In LiveView
+def handle_info({"customer-clicked", id}, socket) do
+  {:noreply, push_navigate(socket, to: ~p"/customers/#{id}")}
+end
+```
 
 ### Sorting
 

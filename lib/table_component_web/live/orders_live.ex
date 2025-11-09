@@ -1,8 +1,12 @@
-defmodule TableComponentWeb.HomeLive do
+defmodule TableComponentWeb.OrdersLive do
   use TableComponentWeb, :live_view
 
   def mount(_params, _session, socket) do
     {:ok, socket}
+  end
+
+  def handle_info({"order-clicked", id}, socket) do
+    {:noreply, push_navigate(socket, to: ~p"/orders/#{id}/items")}
   end
 
   def columns do

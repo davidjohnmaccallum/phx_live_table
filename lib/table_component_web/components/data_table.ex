@@ -12,6 +12,7 @@ defmodule TableComponentWeb.Components.DataTable do
     * `data_module` - Required. Module containing the data (e.g., Order, Customer)
     * `columns` - Required. List of column definitions
     * `stream_name` - Required. Name of the stream (atom, e.g., :orders)
+    * `on_row_click` - Optional. Event name to send to parent LiveView when row is clicked
 
   ## Column Definition
     * `:field` - Required. Field name (atom)
@@ -43,6 +44,13 @@ defmodule TableComponentWeb.Components.DataTable do
       data_module = assigns.data_module
       stream_name = assigns.stream_name
 
+      # Build base opts for queries
+      base_opts = if filter_param = assigns[:filter_param] do
+        [{filter_param, assigns[:filter_value]}]
+      else
+        []
+      end
+
       # Get filter options for filterable columns
       filter_options =
         assigns.columns
@@ -50,8 +58,8 @@ defmodule TableComponentWeb.Components.DataTable do
         |> Enum.map(fn col -> {col.field, DataSource.filter_options(data_module, col.field)} end)
         |> Enum.into(%{})
 
-      total_count = DataSource.count(data_module, [])
-      records = DataSource.list_paginated(data_module, limit: 100, offset: 0)
+      total_count = DataSource.count(data_module, base_opts)
+      records = DataSource.list_paginated(data_module, base_opts ++ [limit: 100, offset: 0])
 
       socket
       |> assign(:has_more, length(records) == 100)
@@ -76,14 +84,22 @@ defmodule TableComponentWeb.Components.DataTable do
     per_page = socket.assigns.per_page
     offset = (page - 1) * per_page
 
+    base_opts = if filter_param = socket.assigns[:filter_param] do
+      [{filter_param, socket.assigns[:filter_value]}]
+    else
+      []
+    end
+
     records =
       DataSource.list_paginated(socket.assigns.data_module,
-        limit: per_page,
-        offset: offset,
-        sort_by: socket.assigns.sort_by,
-        sort_order: socket.assigns.sort_order,
-        filters: socket.assigns.filters,
-        search: socket.assigns.search_terms
+        base_opts ++ [
+          limit: per_page,
+          offset: offset,
+          sort_by: socket.assigns.sort_by,
+          sort_order: socket.assigns.sort_order,
+          filters: socket.assigns.filters,
+          search: socket.assigns.search_terms
+        ]
       )
 
     has_more = length(records) == per_page
@@ -114,20 +130,30 @@ defmodule TableComponentWeb.Components.DataTable do
           {column_atom, :asc}
       end
 
+    base_opts = if filter_param = socket.assigns[:filter_param] do
+      [{filter_param, socket.assigns[:filter_value]}]
+    else
+      []
+    end
+
     records =
       DataSource.list_paginated(socket.assigns.data_module,
-        limit: 100,
-        offset: 0,
-        sort_by: new_sort_by,
-        sort_order: new_sort_order,
-        filters: socket.assigns.filters,
-        search: socket.assigns.search_terms
+        base_opts ++ [
+          limit: 100,
+          offset: 0,
+          sort_by: new_sort_by,
+          sort_order: new_sort_order,
+          filters: socket.assigns.filters,
+          search: socket.assigns.search_terms
+        ]
       )
 
     total_count =
       DataSource.count(socket.assigns.data_module,
-        filters: socket.assigns.filters,
-        search: socket.assigns.search_terms
+        base_opts ++ [
+          filters: socket.assigns.filters,
+          search: socket.assigns.search_terms
+        ]
       )
 
     {:noreply,
@@ -167,20 +193,30 @@ defmodule TableComponentWeb.Components.DataTable do
   end
 
   def handle_event("apply-filters", _params, socket) do
+    base_opts = if filter_param = socket.assigns[:filter_param] do
+      [{filter_param, socket.assigns[:filter_value]}]
+    else
+      []
+    end
+
     records =
       DataSource.list_paginated(socket.assigns.data_module,
-        limit: 100,
-        offset: 0,
-        sort_by: socket.assigns.sort_by,
-        sort_order: socket.assigns.sort_order,
-        filters: socket.assigns.filters,
-        search: socket.assigns.search_terms
+        base_opts ++ [
+          limit: 100,
+          offset: 0,
+          sort_by: socket.assigns.sort_by,
+          sort_order: socket.assigns.sort_order,
+          filters: socket.assigns.filters,
+          search: socket.assigns.search_terms
+        ]
       )
 
     total_count =
       DataSource.count(socket.assigns.data_module,
-        filters: socket.assigns.filters,
-        search: socket.assigns.search_terms
+        base_opts ++ [
+          filters: socket.assigns.filters,
+          search: socket.assigns.search_terms
+        ]
       )
 
     {:noreply,
@@ -197,20 +233,30 @@ defmodule TableComponentWeb.Components.DataTable do
     column_atom = String.to_existing_atom(column)
     new_filters = Map.put(socket.assigns.filters, column_atom, [])
 
+    base_opts = if filter_param = socket.assigns[:filter_param] do
+      [{filter_param, socket.assigns[:filter_value]}]
+    else
+      []
+    end
+
     records =
       DataSource.list_paginated(socket.assigns.data_module,
-        limit: 100,
-        offset: 0,
-        sort_by: socket.assigns.sort_by,
-        sort_order: socket.assigns.sort_order,
-        filters: new_filters,
-        search: socket.assigns.search_terms
+        base_opts ++ [
+          limit: 100,
+          offset: 0,
+          sort_by: socket.assigns.sort_by,
+          sort_order: socket.assigns.sort_order,
+          filters: new_filters,
+          search: socket.assigns.search_terms
+        ]
       )
 
     total_count =
       DataSource.count(socket.assigns.data_module,
-        filters: new_filters,
-        search: socket.assigns.search_terms
+        base_opts ++ [
+          filters: new_filters,
+          search: socket.assigns.search_terms
+        ]
       )
 
     {:noreply,
@@ -264,20 +310,30 @@ defmodule TableComponentWeb.Components.DataTable do
         Map.put(socket.assigns.search_terms, column, search_term)
       end
 
+    base_opts = if filter_param = socket.assigns[:filter_param] do
+      [{filter_param, socket.assigns[:filter_value]}]
+    else
+      []
+    end
+
     records =
       DataSource.list_paginated(socket.assigns.data_module,
-        limit: 100,
-        offset: 0,
-        sort_by: socket.assigns.sort_by,
-        sort_order: socket.assigns.sort_order,
-        filters: socket.assigns.filters,
-        search: new_search_terms
+        base_opts ++ [
+          limit: 100,
+          offset: 0,
+          sort_by: socket.assigns.sort_by,
+          sort_order: socket.assigns.sort_order,
+          filters: socket.assigns.filters,
+          search: new_search_terms
+        ]
       )
 
     total_count =
       DataSource.count(socket.assigns.data_module,
-        filters: socket.assigns.filters,
-        search: new_search_terms
+        base_opts ++ [
+          filters: socket.assigns.filters,
+          search: new_search_terms
+        ]
       )
 
     {:noreply,
@@ -294,20 +350,30 @@ defmodule TableComponentWeb.Components.DataTable do
   def handle_event("clear-search", %{"column" => _column}, socket) do
     new_search_terms = Map.delete(socket.assigns.search_terms, socket.assigns.open_search_column)
 
+    base_opts = if filter_param = socket.assigns[:filter_param] do
+      [{filter_param, socket.assigns[:filter_value]}]
+    else
+      []
+    end
+
     records =
       DataSource.list_paginated(socket.assigns.data_module,
-        limit: 100,
-        offset: 0,
-        sort_by: socket.assigns.sort_by,
-        sort_order: socket.assigns.sort_order,
-        filters: socket.assigns.filters,
-        search: new_search_terms
+        base_opts ++ [
+          limit: 100,
+          offset: 0,
+          sort_by: socket.assigns.sort_by,
+          sort_order: socket.assigns.sort_order,
+          filters: socket.assigns.filters,
+          search: new_search_terms
+        ]
       )
 
     total_count =
       DataSource.count(socket.assigns.data_module,
-        filters: socket.assigns.filters,
-        search: new_search_terms
+        base_opts ++ [
+          filters: socket.assigns.filters,
+          search: new_search_terms
+        ]
       )
 
     {:noreply,
@@ -320,6 +386,15 @@ defmodule TableComponentWeb.Components.DataTable do
      |> assign(:loaded_count, length(records))
      |> assign(:open_search_column, nil)
      |> stream(socket.assigns.stream_name, records, reset: true)}
+  end
+
+  def handle_event("row-click", %{"id" => id}, socket) do
+    # If parent LiveView provided an on_row_click event, send it
+    if event = socket.assigns[:on_row_click] do
+      send(self(), {event, id})
+    end
+
+    {:noreply, socket}
   end
 
   defp sort_icon(column, current_sort, order) do
