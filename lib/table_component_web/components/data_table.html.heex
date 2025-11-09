@@ -72,9 +72,10 @@
           <td
             :for={column <- @columns}
             class={[
-              "px-3 py-2 text-sm text-zinc-900 border-r border-zinc-200 whitespace-nowrap overflow-hidden text-ellipsis",
+              "px-3 py-2 text-sm border-r border-zinc-200 whitespace-nowrap overflow-hidden text-ellipsis",
               last_column?(column, @columns) && "border-r-0",
-              text_align_class(column[:align] || :left)
+              text_align_class(column[:align] || :left),
+              get_cell_class(record, column) || "text-zinc-900"
             ]}
           >
             {format_cell_value(record, column)}

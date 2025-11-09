@@ -22,7 +22,7 @@ defmodule TableComponentWeb.Components.DataTable do
     * `:accessor` - Function to get value from record (default: &Map.get(&1, field))
     * `:format` - Function to format value for display (default: &to_string/1)
     * `:align` - Text alignment (:left, :right, :center, default: :left)
-    * `:class` - Additional CSS classes
+    * `:class` - Additional CSS classes (string or function/1 taking the record)
   """
 
   def update(assigns, socket) do
@@ -370,6 +370,15 @@ defmodule TableComponentWeb.Components.DataTable do
   defp text_align_class(:right), do: "text-right"
   defp text_align_class(:center), do: "text-center"
   defp text_align_class(_), do: "text-left"
+
+  defp get_cell_class(record, column) do
+    case column[:class] do
+      nil -> nil
+      class when is_binary(class) -> class
+      class when is_function(class, 1) -> class.(record)
+      _ -> nil
+    end
+  end
 
   defp format_cell_value(record, column) do
     accessor = column[:accessor] || fn r -> Map.get(r, column.field) end

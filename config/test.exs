@@ -20,12 +20,6 @@ config :table_component, TableComponentWeb.Endpoint,
   secret_key_base: "sOVlRJYX/SeCVh5lgy9XgvyN1nuqM9F34o4EYQms/3F13kprFE9QQTEHjVDts8X5",
   server: false
 
-# In test we don't send emails
-config :table_component, TableComponent.Mailer, adapter: Swoosh.Adapters.Test
-
-# Disable swoosh api client as it is only required for production adapters
-config :swoosh, :api_client, false
-
 # Print only warnings and errors during test
 config :logger, level: :warning
 
